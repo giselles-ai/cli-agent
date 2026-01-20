@@ -1,0 +1,28 @@
+{
+	"name": "yona",
+	"module": "index.ts",
+	"type": "module",
+	"private": true,
+	"bin": {
+		"yona": "dist/cli/index.js"
+	},
+	"scripts": {
+		"dev": "YONA_DAEMON_CMD=\"bun run src/daemon/index.ts\" bun run src/cli/index.ts",
+		"dev:daemon": "bun run src/daemon/index.ts",
+		"build": "tsc -p tsconfig.build.json",
+		"start": "node dist/cli/index.js",
+		"daemon": "node dist/daemon/index.js"
+	},
+	"dependencies": {
+		"zod": "^3.23.8"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.3.11",
+		"@types/bun": "latest",
+		"@types/node": "^20.11.30",
+		"typescript": "^5.6.3"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	}
+}
