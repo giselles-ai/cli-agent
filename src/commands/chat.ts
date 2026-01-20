@@ -8,7 +8,9 @@ let client: OpenAI | null = null;
 
 function getClient(): OpenAI {
 	if (!process.env.OPENAI_API_KEY) {
-		throw new Error("OPENAI_API_KEY is not set");
+		throw new Error(
+			"OPENAI_API_KEY is not set in the daemon environment. Restart the daemon after exporting it (note: .env is not loaded when running with node).",
+		);
 	}
 	if (!client) {
 		client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
