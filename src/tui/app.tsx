@@ -52,35 +52,36 @@ export function App({ lines, onSubmit, onExit }: Props) {
 					paddingLeft: 1,
 					paddingRight: 1,
 				}}
+				contentOptions={{
+					flexDirection: "column",
+					flexGrow: 1,
+					justifyContent: "flex-end",
+				}}
 				stickyScroll
 				stickyStart="bottom"
 				focused={focusTarget === "log"}
 			>
-				<box
-					style={{
-						flexDirection: "column",
-						justifyContent: "flex-end",
-						height: "100%",
-					}}
-				>
-					{lines.length === 0 ? (
-						<text>no messages yet</text>
-					) : (
-						lines.map((line) =>
-							line.kind === "text" ? (
-								<text key={line.id}>{line.text}</text>
-							) : (
-								<box
-									key={line.id}
-									style={{ flexDirection: "column", marginBottom: 1 }}
-								>
-									<text>{`${line.role}:`}</text>
-									{renderMarkdownBlocks(line.content, line.id, debugEnabled)}
-								</box>
-							),
-						)
-					)}
-				</box>
+				{lines.length === 0 ? (
+					<text>no messages yet</text>
+				) : (
+					lines.map((line) =>
+						line.kind === "text" ? (
+							<text key={line.id}>{line.text}</text>
+						) : (
+							<box
+								key={line.id}
+								style={{
+									flexDirection: "column",
+									flexShrink: 0,
+									marginBottom: 1,
+								}}
+							>
+								<text>{`${line.role}:`}</text>
+								{renderMarkdownBlocks(line.content, line.id, debugEnabled)}
+							</box>
+						),
+					)
+				)}
 			</scrollbox>
 			<box style={{ height: 3, border: true, paddingLeft: 1 }}>
 				<input
