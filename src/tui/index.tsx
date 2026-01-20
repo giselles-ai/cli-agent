@@ -205,15 +205,49 @@ type TuiRootProps = {
 function TuiRoot({ onExit }: TuiRootProps) {
 	const [lines, setLines] = useState<Line[]>([]);
 
+	const appendHelp = useCallback(() => {
+		const helpLines = [
+			"[help] Input rules:",
+			"- Plain text is sent as chat.",
+			"- Commands start with / (e.g. /run, /status, /stop, /session list).",
+			"- /chat <text> is supported, but plain text is recommended.",
+		];
+		setLines((prev) => [
+			...prev,
+			...helpLines.map((text) => ({
+				id: crypto.randomUUID(),
+				kind: "text",
+				text,
+			})),
+		]);
+	}, []);
+
 	const handleSubmit = useCallback((line: string) => {
 		setLines((prev) => [
 			...prev,
 			{ id: crypto.randomUUID(), kind: "text", text: `> ${line}` },
 		]);
 
-		const parts = splitCommand(line);
 		try {
-			const cmd = buildCommand(parts, DEFAULT_SESSION);
+			if (line.startsWith("/")) {
+				const commandLine = line.slice(1).trim();
+				if (commandLine.length === 0 || commandLine === "help") {
+					appendHelp();
+					return;
+				}
+				const parts = splitCommand(commandLine);
+				const cmd = buildCommand(parts, DEFAULT_SESSION);
+				commandSchema.parse(cmd);
+				void sendRequest(cmd);
+				return;
+			}
+
+			const cmd: Command = {
+				id: crypto.randomUUID(),
+				action: "chat",
+				session: DEFAULT_SESSION,
+				text: line,
+			};
 			commandSchema.parse(cmd);
 			void sendRequest(cmd);
 		} catch (err) {
@@ -223,7 +257,7 @@ function TuiRoot({ onExit }: TuiRootProps) {
 				{ id: crypto.randomUUID(), kind: "text", text: `[error] ${message}` },
 			]);
 		}
-	}, []);
+	}, [appendHelp]);
 
 	useEffect(() => {
 		streamSocket = openStream({

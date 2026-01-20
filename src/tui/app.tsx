@@ -86,7 +86,7 @@ export function App({ lines, onSubmit, onExit }: Props) {
 			<box style={{ height: 3, border: true, paddingLeft: 1 }}>
 				<input
 					focused={focusTarget === "input"}
-					placeholder="command..."
+					placeholder="message or /command..."
 					value={input}
 					onInput={setInput}
 					onSubmit={(value) => {
