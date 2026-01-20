@@ -10,7 +10,7 @@ bun install
 
 ## Development (Bun)
 
-Start the CLI and daemon in development mode:
+Start the CLI, ensure the daemon is running, and open the TUI:
 
 ```bash
 bun run dev
@@ -33,6 +33,7 @@ bun run build
 Run the CLI with Node:
 
 ```bash
+node dist/cli/index.js
 node dist/cli/index.js ping
 node dist/cli/index.js run demo-task --duration 1500
 node dist/cli/index.js status
@@ -49,28 +50,28 @@ node dist/daemon/index.js
 ## CLI usage
 
 ```bash
+yona
 yona ping
 yona run <name> [--duration <ms>] [--session <name>]
 yona chat <text> [--model <id>] [--session <name>]
 yona status [taskId] [--session <name>]
 yona stop [taskId] [--session <name>]
 yona session list
-yona tui
 yona --json <command>
 ```
 
 ## TUI usage
 
-Start the OpenTUI interface:
+Start the OpenTUI interface via the CLI (daemon auto-starts if needed):
 
 ```bash
-bun run tui
+bun run dev
 ```
 
 Or from Node after building:
 
 ```bash
-node dist/cli/index.js tui
+node dist/cli/index.js
 ```
 
 The TUI subscribes to daemon events and updates in real time (task state changes and new sessions).

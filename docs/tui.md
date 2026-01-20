@@ -164,17 +164,17 @@ Each event triggers a re-render, updating the display.
 ### Development (Bun)
 
 ```bash
-bun run tui
+bun run dev
 ```
 
 ### Production (Node.js)
 
 ```bash
 bun run build
-node dist/tui/index.js
+node dist/cli/index.js
 ```
 
-The daemon must be running for events to appear.
+The CLI ensures the daemon is running before the TUI connects.
 
 ## Current Limitations
 

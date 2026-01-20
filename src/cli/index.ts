@@ -47,13 +47,13 @@ function parseArgs(argv: string[]): { flags: CliFlags; args: string[] } {
 
 function usage(): string {
 	return `Usage:
+  yona
   yona ping
   yona run <name> [--duration <ms>] [--session <name>]
   yona chat <text> [--model <id>] [--session <name>]
   yona status [taskId] [--session <name>]
   yona stop [taskId] [--session <name>]
   yona session list
-  yona tui
   yona --json <command>`;
 }
 
@@ -244,13 +244,20 @@ function renderHuman(response: Response): void {
 
 async function main() {
 	const argv = process.argv.slice(2);
-	if (argv.length === 0 || argv.includes("--help") || argv.includes("-h")) {
+	if (argv.includes("--help") || argv.includes("-h")) {
 		console.log(usage());
+		return;
+	}
+
+	if (argv.length === 0) {
+		await ensureDaemon();
+		launchTui();
 		return;
 	}
 
 	const { flags, args } = parseArgs(argv);
 	if (args[0] === "tui") {
+		await ensureDaemon();
 		launchTui();
 		return;
 	}

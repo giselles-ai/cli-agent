@@ -7,7 +7,7 @@
 		"yona": "dist/cli/index.js"
 	},
 	"scripts": {
-		"dev": "YONA_DAEMON_CMD=\"bun run src/daemon/index.ts\" bun run src/cli/index.ts",
+		"dev": "YONA_DAEMON_CMD=\"bun run src/daemon/index.ts\" YONA_TUI_CMD=\"bun run src/tui/index.tsx\" bun run src/cli/index.ts",
 		"dev:daemon": "bun run src/daemon/index.ts",
 		"build": "tsc -p tsconfig.build.json",
 		"start": "node dist/cli/index.js",

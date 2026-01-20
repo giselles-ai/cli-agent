@@ -102,9 +102,13 @@ function buildCommand(args: string[], session: string): Command {
 			const textParts: string[] = [];
 			for (let i = 0; i < tokens.length; i += 1) {
 				const token = tokens[i];
+				if (!token) continue;
 				if (token === "--model") {
-					model = tokens[i + 1];
-					i += 1;
+					const next = tokens[i + 1];
+					if (next) {
+						model = next;
+						i += 1;
+					}
 					continue;
 				}
 				textParts.push(token);
@@ -215,6 +219,7 @@ function updateChatMessages(
 	}
 
 	const existing = current[idx];
+	if (!existing) return current;
 	const nextText = finalText ?? `${existing.text}${deltaText}`;
 	return [
 		...current.slice(0, idx),
