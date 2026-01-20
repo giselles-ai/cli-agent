@@ -4,7 +4,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { type Command, commandSchema, type Response } from "../protocol.js";
 import { openStream } from "../stream.js";
-import { daemonReady, isDaemonRunning, sendRequest } from "../transport.js";
+import {
+	daemonReady,
+	isDaemonRunning,
+	sendRequest,
+	stopDaemon,
+} from "../transport.js";
 
 type CliFlags = {
 	json: boolean;
@@ -83,6 +88,9 @@ function splitCommand(input: string): string[] {
 }
 
 async function ensureDaemon(): Promise<void> {
+	if (process.env.YONA_DEV_RESTART_DAEMON === "1") {
+		await stopDaemon();
+	}
 	if (isDaemonRunning() && (await daemonReady())) return;
 
 	const daemonCmd = process.env.YONA_DAEMON_CMD;

@@ -9,11 +9,11 @@ import type { ChatEvent, EventMessage } from "../protocol.js";
 import { type Command, commandSchema } from "../protocol.js";
 import { openStream } from "../stream.js";
 import { daemonReady, isDaemonRunning, sendRequest } from "../transport.js";
+import type { Line } from "./app.js";
 import { App } from "./app.js";
 
 const DEFAULT_SESSION = "default";
 
-type Line = { id: string; text: string };
 let streamSocket: ReturnType<typeof openStream> | null = null;
 
 function splitCommand(input: string): string[] {
@@ -141,22 +141,15 @@ function formatEvent(event: EventMessage): Line | null {
 	if (event.type === "task") {
 		return {
 			id: `task:${event.taskId}:${event.status}`,
+			kind: "text",
 			text: `[${event.status}] ${event.session} ${event.taskId} ${event.name}`,
 		};
 	}
 	if (event.type === "session") {
 		return {
 			id: `session:${event.session}`,
+			kind: "text",
 			text: `[session] ${event.session}`,
-		};
-	}
-	if (event.type === "chat") {
-		const chat = event as ChatEvent;
-		const text = chat.text ?? chat.delta;
-		if (!text) return null;
-		return {
-			id: `chat:${chat.messageId}:${chat.role}`,
-			text: `${chat.role}: ${text}`,
 		};
 	}
 	return null;
@@ -164,15 +157,45 @@ function formatEvent(event: EventMessage): Line | null {
 
 function updateChatLine(lines: Line[], event: ChatEvent): Line[] {
 	const id = `chat:${event.messageId}:${event.role}`;
+	if (event.text === undefined && event.delta === undefined) {
+		return lines;
+	}
+
 	const idx = lines.findIndex((line) => line.id === id);
 	const nextText = event.text ?? event.delta ?? "";
 	if (idx === -1) {
-		return [...lines, { id, text: `${event.role}: ${nextText}` }];
+		return [
+			...lines,
+			{
+				id,
+				kind: "markdown",
+				role: event.role,
+				content: nextText,
+				streaming: !event.isFinal,
+			},
+		];
 	}
 	const prev = lines[idx];
 	if (!prev) return lines;
-	const text = event.text ?? `${prev.text}${event.delta ?? ""}`;
-	return [...lines.slice(0, idx), { id, text }, ...lines.slice(idx + 1)];
+	if (prev.kind !== "markdown") {
+		return [
+			...lines.slice(0, idx),
+			{
+				id,
+				kind: "markdown",
+				role: event.role,
+				content: nextText,
+				streaming: !event.isFinal,
+			},
+			...lines.slice(idx + 1),
+		];
+	}
+	const content = event.text ?? `${prev.content}${event.delta ?? ""}`;
+	return [
+		...lines.slice(0, idx),
+		{ ...prev, content, streaming: !event.isFinal },
+		...lines.slice(idx + 1),
+	];
 }
 
 type TuiRootProps = {
@@ -185,7 +208,7 @@ function TuiRoot({ onExit }: TuiRootProps) {
 	const handleSubmit = useCallback((line: string) => {
 		setLines((prev) => [
 			...prev,
-			{ id: crypto.randomUUID(), text: `> ${line}` },
+			{ id: crypto.randomUUID(), kind: "text", text: `> ${line}` },
 		]);
 
 		const parts = splitCommand(line);
@@ -197,7 +220,7 @@ function TuiRoot({ onExit }: TuiRootProps) {
 			const message = err instanceof Error ? err.message : String(err);
 			setLines((prev) => [
 				...prev,
-				{ id: crypto.randomUUID(), text: `[error] ${message}` },
+				{ id: crypto.randomUUID(), kind: "text", text: `[error] ${message}` },
 			]);
 		}
 	}, []);
@@ -216,7 +239,11 @@ function TuiRoot({ onExit }: TuiRootProps) {
 			onError: (err) => {
 				setLines((prev) => [
 					...prev,
-					{ id: crypto.randomUUID(), text: `[error] ${err.message}` },
+					{
+						id: crypto.randomUUID(),
+						kind: "text",
+						text: `[error] ${err.message}`,
+					},
 				]);
 			},
 		});

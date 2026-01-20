@@ -1,7 +1,16 @@
-import { useKeyboard } from "@opentui/react";
-import { useState } from "react";
+import { useKeyboard, useRenderer } from "@opentui/react";
+import { useEffect, useState } from "react";
+import { renderMarkdownBlocks } from "./markdown-renderer.js";
 
-export type Line = { id: string; text: string };
+export type TextLine = { id: string; kind: "text"; text: string };
+export type MarkdownLine = {
+	id: string;
+	kind: "markdown";
+	role: "assistant" | "user";
+	content: string;
+	streaming?: boolean;
+};
+export type Line = TextLine | MarkdownLine;
 type FocusTarget = "input" | "log";
 
 type Props = {
@@ -13,6 +22,15 @@ type Props = {
 export function App({ lines, onSubmit, onExit }: Props) {
 	const [input, setInput] = useState("");
 	const [focusTarget, setFocusTarget] = useState("input" as FocusTarget);
+	const renderer = useRenderer();
+	const debugEnabled =
+		process.env.YONA_TUI_DEBUG === "1" || process.env.YONA_TUI_DEBUG === "true";
+
+	useEffect(() => {
+		if (!debugEnabled) return;
+		renderer.console.show();
+		console.log("[tui-debug] console enabled");
+	}, [debugEnabled, renderer]);
 
 	useKeyboard((key) => {
 		if (key.ctrl && key.name === "c") {
@@ -48,7 +66,19 @@ export function App({ lines, onSubmit, onExit }: Props) {
 					{lines.length === 0 ? (
 						<text>no messages yet</text>
 					) : (
-						lines.map((line) => <text key={line.id}>{line.text}</text>)
+						lines.map((line) =>
+							line.kind === "text" ? (
+								<text key={line.id}>{line.text}</text>
+							) : (
+								<box
+									key={line.id}
+									style={{ flexDirection: "column", marginBottom: 1 }}
+								>
+									<text>{`${line.role}:`}</text>
+									{renderMarkdownBlocks(line.content, line.id, debugEnabled)}
+								</box>
+							),
+						)
 					)}
 				</box>
 			</scrollbox>

@@ -83,6 +83,60 @@ export function daemonReady(): Promise<boolean> {
 	});
 }
 
+export async function stopDaemon(options?: {
+	signal?: NodeJS.Signals;
+	timeoutMs?: number;
+	forceAfterMs?: number;
+}): Promise<void> {
+	const signal = options?.signal ?? "SIGTERM";
+	const timeoutMs = options?.timeoutMs ?? 2000;
+	const forceAfterMs = options?.forceAfterMs ?? 1500;
+
+	const pidFile = getPidFile();
+	if (!fs.existsSync(pidFile)) return;
+
+	let pid: number | undefined;
+	try {
+		pid = parseInt(fs.readFileSync(pidFile, "utf8").trim(), 10);
+		if (!Number.isFinite(pid)) return;
+	} catch {
+		return;
+	}
+
+	try {
+		process.kill(pid, signal);
+	} catch {
+		// Already dead (or no permission); treat as stopped and rely on cleanup.
+		cleanupSocket();
+		return;
+	}
+
+	const startedAt = Date.now();
+	let forced = false;
+
+	while (Date.now() - startedAt < timeoutMs) {
+		const running = isDaemonRunning();
+		const ready = await daemonReady();
+
+		if (!running && !ready) return;
+
+		if (!forced && Date.now() - startedAt >= forceAfterMs) {
+			forced = true;
+			try {
+				process.kill(pid, "SIGKILL");
+			} catch {
+				// ignore
+			}
+		}
+
+		await new Promise((r) => setTimeout(r, 50));
+	}
+
+	// Best-effort: if the daemon is still around, we shouldn't delete its socket.
+	// If it's dead but cleanup didn't run (e.g. SIGKILL), clear stale files.
+	if (!isDaemonRunning()) cleanupSocket();
+}
+
 export async function sendRequest(
 	payload: unknown,
 	timeoutMs = 30000,
