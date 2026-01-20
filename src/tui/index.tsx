@@ -143,6 +143,36 @@ async function main() {
 	const root = createRoot(renderer);
 	let events: EventMessage[] = [];
 	let chatMessages: ChatMessage[] = [];
+	let streamSocket: ReturnType<typeof openStream> | null = null;
+	let isShuttingDown = false;
+
+	const shutdown = () => {
+		if (isShuttingDown) return;
+		isShuttingDown = true;
+
+		try {
+			streamSocket?.end();
+			streamSocket?.destroy();
+		} catch {
+			// Ignore stream shutdown errors.
+		}
+
+		try {
+			root.unmount();
+		} catch {
+			// Ignore unmount errors.
+		}
+
+		try {
+			renderer.destroy();
+		} catch {
+			// Ignore renderer teardown errors.
+		}
+
+		setTimeout(() => {
+			process.exit(0);
+		}, 0);
+	};
 
 	const render = () => {
 		root.render(
@@ -172,11 +202,12 @@ async function main() {
 						render();
 					}
 				}}
+				onExit={shutdown}
 			/>,
 		);
 	};
 
-	openStream({
+	streamSocket = openStream({
 		onEvent: (event) => {
 			if (event.type === "chat") {
 				chatMessages = updateChatMessages(chatMessages, event);

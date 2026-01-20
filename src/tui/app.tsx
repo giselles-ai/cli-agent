@@ -7,6 +7,7 @@ type Props = {
 	events: EventMessage[];
 	chatMessages: ChatMessage[];
 	onSubmit: (line: string) => void;
+	onExit: () => void;
 };
 
 type ChatMessage = {
@@ -15,12 +16,18 @@ type ChatMessage = {
 	text: string;
 };
 
-export function App({ session, events, chatMessages, onSubmit }: Props) {
+export function App({
+	session,
+	events,
+	chatMessages,
+	onSubmit,
+	onExit,
+}: Props) {
 	const [input, setInput] = useState("");
 
 	useKeyboard((key) => {
 		if (key.ctrl && key.name === "c") {
-			process.exit(0);
+			onExit();
 		}
 	});
 
