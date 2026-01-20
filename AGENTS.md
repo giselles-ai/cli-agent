@@ -47,6 +47,15 @@ bun run dev:daemon   # Run daemon only
 bun run tui          # Run TUI
 ```
 
+### After Editing Files
+
+Run these checks after any file edits. If errors occur, fix them and re-run until clean.
+
+```bash
+bun run tsc --noEmit
+bun run biome check --write
+```
+
 ### Building for Production
 
 ```bash
