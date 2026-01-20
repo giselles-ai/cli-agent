@@ -4,13 +4,19 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
-import type { EventMessage } from "../protocol.js";
+import type { ChatEvent, EventMessage } from "../protocol.js";
 import { type Command, commandSchema } from "../protocol.js";
 import { openStream } from "../stream.js";
 import { daemonReady, isDaemonRunning, sendRequest } from "../transport.js";
 import { App } from "./app.js";
 
 const DEFAULT_SESSION = "default";
+
+type ChatMessage = {
+	id: string;
+	role: "user" | "assistant";
+	text: string;
+};
 
 function splitCommand(input: string): string[] {
 	const result: string[] = [];
@@ -90,6 +96,23 @@ function buildCommand(args: string[], session: string): Command {
 					: undefined;
 			return { id, action: "run", session, name, durationMs };
 		}
+		case "chat": {
+			const tokens = args.slice(1);
+			let model: string | undefined;
+			const textParts: string[] = [];
+			for (let i = 0; i < tokens.length; i += 1) {
+				const token = tokens[i];
+				if (token === "--model") {
+					model = tokens[i + 1];
+					i += 1;
+					continue;
+				}
+				textParts.push(token);
+			}
+			const text = textParts.join(" ").trim();
+			if (!text) throw new Error("chat requires text");
+			return { id, action: "chat", session, text, model };
+		}
 		case "status": {
 			const taskId = args[1];
 			return { id, action: "status", session, taskId };
@@ -115,12 +138,14 @@ async function main() {
 	const renderer = await createCliRenderer({ exitOnCtrlC: false });
 	const root = createRoot(renderer);
 	let events: EventMessage[] = [];
+	let chatMessages: ChatMessage[] = [];
 
 	const render = () => {
 		root.render(
 			<App
 				session={DEFAULT_SESSION}
 				events={events}
+				chatMessages={chatMessages}
 				onSubmit={(line) => {
 					const parts = splitCommand(line);
 					try {
@@ -149,7 +174,11 @@ async function main() {
 
 	openStream({
 		onEvent: (event) => {
-			events = [...events, event];
+			if (event.type === "chat") {
+				chatMessages = updateChatMessages(chatMessages, event);
+			} else {
+				events = [...events, event];
+			}
 			render();
 		},
 		onError: (err) => {
@@ -169,6 +198,29 @@ async function main() {
 	});
 
 	render();
+}
+
+function updateChatMessages(
+	current: ChatMessage[],
+	event: ChatEvent,
+): ChatMessage[] {
+	const messageId = `${event.messageId}:${event.role}`;
+	const idx = current.findIndex((item) => item.id === messageId);
+	const deltaText = event.delta ?? "";
+	const finalText = event.text;
+
+	if (idx === -1) {
+		const text = finalText ?? deltaText;
+		return [...current, { id: messageId, role: event.role, text }];
+	}
+
+	const existing = current[idx];
+	const nextText = finalText ?? `${existing.text}${deltaText}`;
+	return [
+		...current.slice(0, idx),
+		{ ...existing, text: nextText },
+		...current.slice(idx + 1),
+	];
 }
 
 main().catch((err) => {

@@ -29,6 +29,12 @@ const stopSchema = sessionCommandSchema.extend({
 	taskId: z.string().optional(),
 });
 
+const chatSchema = sessionCommandSchema.extend({
+	action: z.literal("chat"),
+	text: z.string().min(1),
+	model: z.string().min(1).optional(),
+});
+
 const sessionListSchema = baseCommandSchema.extend({
 	action: z.literal("session_list"),
 });
@@ -42,6 +48,7 @@ export const commandSchema = z.discriminatedUnion("action", [
 	runSchema,
 	statusSchema,
 	stopSchema,
+	chatSchema,
 	sessionListSchema,
 	subscribeSchema,
 ]);
@@ -70,7 +77,18 @@ export type SessionEvent = {
 	timestamp: number;
 };
 
-export type EventMessage = TaskEvent | SessionEvent;
+export type ChatEvent = {
+	type: "chat";
+	session: string;
+	messageId: string;
+	role: "user" | "assistant";
+	delta?: string;
+	text?: string;
+	isFinal?: boolean;
+	timestamp: number;
+};
+
+export type EventMessage = TaskEvent | SessionEvent | ChatEvent;
 
 export type ParseResult =
 	| { success: true; command: Command }

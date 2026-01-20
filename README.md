@@ -51,6 +51,7 @@ node dist/daemon/index.js
 ```bash
 yona ping
 yona run <name> [--duration <ms>] [--session <name>]
+yona chat <text> [--model <id>] [--session <name>]
 yona status [taskId] [--session <name>]
 yona stop [taskId] [--session <name>]
 yona session list
@@ -73,6 +74,28 @@ node dist/cli/index.js tui
 ```
 
 The TUI subscribes to daemon events and updates in real time (task state changes and new sessions).
+
+## AI chat (OpenAI Responses API)
+
+Set your API key in the environment:
+
+```bash
+export OPENAI_API_KEY="..."
+```
+
+CLI chat:
+
+```bash
+yona chat "hello"
+yona chat "summarize this" --model gpt-4o-mini
+```
+
+TUI chat:
+
+```text
+chat hello
+chat write a haiku --model gpt-4o-mini
+```
 
 ## Notes
 

@@ -40,6 +40,9 @@ const ctx: CommandContext = {
 		};
 		broadcast(event);
 	},
+	onChatEvent: (event) => {
+		broadcast(event);
+	},
 };
 
 function broadcast(event: EventMessage): void {
@@ -136,8 +139,10 @@ export async function startDaemon(): Promise<void> {
 	process.on("exit", () => cleanupSocket());
 }
 
+const daemonEntry = process.argv[1] ?? "";
 if (
-	process.argv[1]?.endsWith("daemon/index.js") ||
+	daemonEntry.endsWith("daemon/index.js") ||
+	daemonEntry.endsWith("daemon/index.ts") ||
 	process.env.YONA_DAEMON === "1"
 ) {
 	startDaemon().catch((err) => {

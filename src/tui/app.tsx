@@ -5,10 +5,17 @@ import type { EventMessage } from "../protocol.js";
 type Props = {
 	session: string;
 	events: EventMessage[];
+	chatMessages: ChatMessage[];
 	onSubmit: (line: string) => void;
 };
 
-export function App({ session, events, onSubmit }: Props) {
+type ChatMessage = {
+	id: string;
+	role: "user" | "assistant";
+	text: string;
+};
+
+export function App({ session, events, chatMessages, onSubmit }: Props) {
 	const [input, setInput] = useState("");
 
 	useKeyboard((key) => {
@@ -26,6 +33,12 @@ export function App({ session, events, onSubmit }: Props) {
 		});
 	}, [events]);
 
+	const chatLines = useMemo(() => {
+		return chatMessages.map((message) => {
+			return `${message.role}: ${message.text}`;
+		});
+	}, [chatMessages]);
+
 	const lastEvent = lines.length > 0 ? lines[lines.length - 1] : "no events";
 
 	return (
@@ -35,12 +48,28 @@ export function App({ session, events, onSubmit }: Props) {
 			</box>
 			<scrollbox
 				style={{
-					flexGrow: 1,
+					flexGrow: 2,
 					border: true,
 					paddingLeft: 1,
 					paddingRight: 1,
 				}}
 				focused
+			>
+				{chatLines.length === 0 ? (
+					<text>no chat messages yet</text>
+				) : (
+					chatLines.map((line: string, index: number) => (
+						<text key={`${index}-${line}`}>{line}</text>
+					))
+				)}
+			</scrollbox>
+			<scrollbox
+				style={{
+					flexGrow: 1,
+					border: true,
+					paddingLeft: 1,
+					paddingRight: 1,
+				}}
 			>
 				{lines.length === 0 ? (
 					<text>no events yet</text>

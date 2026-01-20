@@ -1,9 +1,16 @@
+import type { ChatEvent } from "../protocol.js";
 import { type TaskEventHandler, TaskRunner } from "../tasks/runner.js";
 
 export type SessionState = {
 	name: string;
 	createdAt: number;
 	runner: TaskRunner;
+	chat: ChatState;
+};
+
+export type ChatState = {
+	previousResponseId?: string;
+	inFlight: boolean;
 };
 
 export type CommandContext = {
@@ -14,6 +21,7 @@ export type CommandContext = {
 		status: Parameters<TaskEventHandler>[1],
 	) => void;
 	onSessionEvent?: (session: string) => void;
+	onChatEvent?: (event: ChatEvent) => void;
 };
 
 export function getOrCreateSession(
@@ -31,6 +39,9 @@ export function getOrCreateSession(
 				? (task, status) => ctx.onTaskEvent?.(name, task, status)
 				: undefined,
 		),
+		chat: {
+			inFlight: false,
+		},
 	};
 	ctx.sessions.set(name, session);
 	ctx.onSessionEvent?.(name);

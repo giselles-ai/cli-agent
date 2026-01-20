@@ -1,4 +1,5 @@
 import type { Command } from "../protocol.js";
+import { handleChat } from "./chat.js";
 import type { CommandContext } from "./context.js";
 import { handlePing } from "./ping.js";
 import { handleRun } from "./run.js";
@@ -15,6 +16,8 @@ export async function dispatchCommand(
 			return handlePing();
 		case "run":
 			return handleRun(command, ctx);
+		case "chat":
+			return handleChat(command, ctx);
 		case "status":
 			return handleStatus(command, ctx);
 		case "stop":

@@ -3,11 +3,13 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { type Command, commandSchema, type Response } from "../protocol.js";
+import { openStream } from "../stream.js";
 import { daemonReady, isDaemonRunning, sendRequest } from "../transport.js";
 
 type CliFlags = {
 	json: boolean;
 	session: string;
+	model?: string;
 };
 
 function parseArgs(argv: string[]): { flags: CliFlags; args: string[] } {
@@ -29,6 +31,14 @@ function parseArgs(argv: string[]): { flags: CliFlags; args: string[] } {
 				continue;
 			}
 		}
+		if (arg === "--model") {
+			const next = argv[i + 1];
+			if (typeof next === "string") {
+				flags.model = next;
+				i += 1;
+				continue;
+			}
+		}
 		args.push(arg);
 	}
 
@@ -39,6 +49,7 @@ function usage(): string {
 	return `Usage:
   yona ping
   yona run <name> [--duration <ms>] [--session <name>]
+  yona chat <text> [--model <id>] [--session <name>]
   yona status [taskId] [--session <name>]
   yona stop [taskId] [--session <name>]
   yona session list
@@ -149,6 +160,17 @@ function buildCommand(args: string[], flags: CliFlags): Command {
 					: undefined;
 			return { id, action: "run", session: flags.session, name, durationMs };
 		}
+		case "chat": {
+			const text = args.slice(1).join(" ").trim();
+			if (!text) throw new Error("chat requires text");
+			return {
+				id,
+				action: "chat",
+				session: flags.session,
+				text,
+				model: flags.model,
+			};
+		}
 		case "status": {
 			const taskId = args[1];
 			return { id, action: "status", session: flags.session, taskId };
@@ -242,6 +264,43 @@ async function main() {
 	if (flags.json) {
 		console.log(JSON.stringify(response));
 	} else {
+		if (cmd.action === "chat" && response.success) {
+			const data = response.data as { messageId?: string } | undefined;
+			const messageId = data?.messageId;
+			if (messageId) {
+				await new Promise<void>((resolve, reject) => {
+					let done = false;
+					const socket = openStream({
+						onEvent: (event) => {
+							if (event.type !== "chat") return;
+							if (event.messageId !== messageId) return;
+							if (event.role !== "assistant") return;
+							if (event.delta) {
+								process.stdout.write(event.delta);
+							} else if (event.isFinal && event.text) {
+								process.stdout.write(event.text);
+							}
+							if (event.isFinal) {
+								process.stdout.write("\n");
+								if (!done) {
+									done = true;
+									socket.end();
+									resolve();
+								}
+							}
+						},
+						onError: (err) => {
+							if (!done) {
+								done = true;
+								socket.end();
+								reject(err);
+							}
+						},
+					});
+				});
+				return;
+			}
+		}
 		renderHuman(response);
 	}
 }
