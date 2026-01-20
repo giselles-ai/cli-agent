@@ -21,6 +21,8 @@ export async function dispatchCommand(
 			return handleStop(command, ctx);
 		case "session_list":
 			return handleSessionList(ctx);
+		case "subscribe":
+			return { subscribed: true };
 		default: {
 			const exhaustive: never = command;
 			throw new Error(`Unsupported command: ${(exhaustive as Command).action}`);

@@ -45,7 +45,7 @@ export function App({ session, events, onSubmit }: Props) {
 				{lines.length === 0 ? (
 					<text>no events yet</text>
 				) : (
-					lines.map((line, index) => (
+					lines.map((line: string, index: number) => (
 						<text key={`${index}-${line}`}>{line}</text>
 					))
 				)}
