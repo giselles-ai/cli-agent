@@ -3,8 +3,10 @@ import net from "node:net";
 import type { CommandContext } from "../commands/context.js";
 import { dispatchCommand } from "../commands/index.js";
 import {
+	type EventMessage,
 	errorResponse,
 	parseCommand,
+	serializeEvent,
 	serializeResponse,
 	successResponse,
 } from "../protocol.js";
@@ -15,9 +17,41 @@ import {
 	getPortFile,
 } from "../transport.js";
 
+const subscribers = new Set<net.Socket>();
+
 const ctx: CommandContext = {
 	sessions: new Map(),
+	onTaskEvent: (session, task, status) => {
+		const event: EventMessage = {
+			type: "task",
+			session,
+			taskId: task.id,
+			name: task.name,
+			status,
+			timestamp: Date.now(),
+		};
+		broadcast(event);
+	},
+	onSessionEvent: (session) => {
+		const event: EventMessage = {
+			type: "session",
+			session,
+			timestamp: Date.now(),
+		};
+		broadcast(event);
+	},
 };
+
+function broadcast(event: EventMessage): void {
+	const line = `${serializeEvent(event)}\n`;
+	for (const socket of subscribers) {
+		try {
+			socket.write(line);
+		} catch {
+			subscribers.delete(socket);
+		}
+	}
+}
 
 export async function startDaemon(): Promise<void> {
 	cleanupSocket();
@@ -44,6 +78,15 @@ export async function startDaemon(): Promise<void> {
 						continue;
 					}
 
+					if (parseResult.command.action === "subscribe") {
+						subscribers.add(socket);
+						const resp = successResponse(parseResult.command.id, {
+							subscribed: true,
+						});
+						socket.write(`${serializeResponse(resp)}\n`);
+						continue;
+					}
+
 					const data = await dispatchCommand(parseResult.command, ctx);
 					const resp = successResponse(parseResult.command.id, data);
 					socket.write(`${serializeResponse(resp)}\n`);
@@ -57,6 +100,9 @@ export async function startDaemon(): Promise<void> {
 
 		socket.on("error", () => {
 			// Client disconnected.
+		});
+		socket.on("close", () => {
+			subscribers.delete(socket);
 		});
 	});
 

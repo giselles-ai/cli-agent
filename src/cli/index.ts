@@ -38,6 +38,7 @@ function usage(): string {
   yona status [taskId] [--session <name>]
   yona stop [taskId] [--session <name>]
   yona session list
+  yona tui
   yona --json <command>`;
 }
 
@@ -100,6 +101,31 @@ async function ensureDaemon(): Promise<void> {
 		await new Promise((resolve) => setTimeout(resolve, 100));
 	}
 	throw new Error("Daemon failed to start");
+}
+
+function launchTui(): void {
+	const tuiCmd = process.env.YONA_TUI_CMD;
+	if (tuiCmd) {
+		const parts = splitCommand(tuiCmd);
+		const command = parts.shift();
+		if (!command) throw new Error("YONA_TUI_CMD is empty");
+		const child = spawn(command, parts, {
+			stdio: "inherit",
+			env: { ...process.env },
+		});
+		child.on("exit", (code) => process.exit(code ?? 0));
+		return;
+	}
+
+	const currentFile = fileURLToPath(import.meta.url);
+	const tuiPath = process.env.YONA_TUI_PATH
+		? path.resolve(process.env.YONA_TUI_PATH)
+		: path.resolve(path.dirname(currentFile), "../tui/index.js");
+	const child = spawn("node", [tuiPath], {
+		stdio: "inherit",
+		env: { ...process.env },
+	});
+	child.on("exit", (code) => process.exit(code ?? 0));
 }
 
 function buildCommand(args: string[], flags: CliFlags): Command {
@@ -198,6 +224,10 @@ async function main() {
 	}
 
 	const { flags, args } = parseArgs(argv);
+	if (args[0] === "tui") {
+		launchTui();
+		return;
+	}
 
 	const cmd = buildCommand(args, flags);
 	commandSchema.parse(cmd);

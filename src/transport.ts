@@ -2,7 +2,7 @@ import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import type { Response } from "./protocol.js";
+import type { EventMessage, Response } from "./protocol.js";
 
 const DAEMON_NAME = "yona-daemon";
 const IS_WINDOWS = process.platform === "win32";
@@ -117,4 +117,38 @@ export async function sendRequest(
 
 	socket.write(`${JSON.stringify(payload)}\n`);
 	return await responsePromise;
+}
+
+export function subscribe(
+	payload: unknown,
+	onEvent: (event: EventMessage) => void,
+	onError?: (err: Error) => void,
+): net.Socket {
+	const info = getConnectionInfo();
+	const socket =
+		info.type === "unix"
+			? net.connect(info.path)
+			: net.connect(info.port, "127.0.0.1");
+
+	let buffer = "";
+	socket.on("data", (chunk) => {
+		buffer += chunk.toString();
+		while (buffer.includes("\n")) {
+			const line = buffer.slice(0, buffer.indexOf("\n"));
+			buffer = buffer.slice(buffer.indexOf("\n") + 1);
+			if (!line.trim()) continue;
+			try {
+				const parsed = JSON.parse(line) as EventMessage;
+				if ("type" in parsed) {
+					onEvent(parsed);
+				}
+			} catch (err) {
+				onError?.(err as Error);
+			}
+		}
+	});
+
+	socket.on("error", (err) => onError?.(err as Error));
+	socket.write(`${JSON.stringify(payload)}\n`);
+	return socket;
 }

@@ -1,4 +1,4 @@
-import { TaskRunner } from "../tasks/runner.js";
+import { type TaskEventHandler, TaskRunner } from "../tasks/runner.js";
 
 export type SessionState = {
 	name: string;
@@ -8,6 +8,12 @@ export type SessionState = {
 
 export type CommandContext = {
 	sessions: Map<string, SessionState>;
+	onTaskEvent?: (
+		session: string,
+		task: Parameters<TaskEventHandler>[0],
+		status: Parameters<TaskEventHandler>[1],
+	) => void;
+	onSessionEvent?: (session: string) => void;
 };
 
 export function getOrCreateSession(
@@ -20,9 +26,14 @@ export function getOrCreateSession(
 	const session: SessionState = {
 		name,
 		createdAt: Date.now(),
-		runner: new TaskRunner(),
+		runner: new TaskRunner(
+			ctx.onTaskEvent
+				? (task, status) => ctx.onTaskEvent?.(name, task, status)
+				: undefined,
+		),
 	};
 	ctx.sessions.set(name, session);
+	ctx.onSessionEvent?.(name);
 	return session;
 }
 

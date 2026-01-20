@@ -24,7 +24,11 @@ type RunningState = {
 	timer: NodeJS.Timeout;
 };
 
+export type TaskEventHandler = (task: TaskInfo, status: TaskStatus) => void;
+
 export class TaskRunner {
+	constructor(private onEvent?: TaskEventHandler) {}
+
 	private tasks = new Map<string, TaskInfo>();
 	private queue: string[] = [];
 	private running: string | null = null;
@@ -41,6 +45,7 @@ export class TaskRunner {
 		};
 		this.tasks.set(id, info);
 		this.queue.push(id);
+		this.onEvent?.(info, "queued");
 		void this.runNext();
 		return info;
 	}
@@ -61,6 +66,7 @@ export class TaskRunner {
 			this.queue = this.queue.filter((id) => id !== taskId);
 			task.status = "cancelled";
 			task.endedAt = Date.now();
+			this.onEvent?.(task, "cancelled");
 			return task;
 		}
 
@@ -84,6 +90,7 @@ export class TaskRunner {
 
 		task.status = "running";
 		task.startedAt = Date.now();
+		this.onEvent?.(task, "running");
 		this.running = nextId;
 
 		const controller = new AbortController();
@@ -102,9 +109,11 @@ export class TaskRunner {
 			await done;
 			task.status = "completed";
 			task.result = "ok";
+			this.onEvent?.(task, "completed");
 		} catch (err) {
 			task.status = "cancelled";
 			task.error = err instanceof Error ? err.message : "cancelled";
+			this.onEvent?.(task, "cancelled");
 		} finally {
 			task.endedAt = Date.now();
 			this.runningState.delete(nextId);

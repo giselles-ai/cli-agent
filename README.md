@@ -54,11 +54,29 @@ yona run <name> [--duration <ms>] [--session <name>]
 yona status [taskId] [--session <name>]
 yona stop [taskId] [--session <name>]
 yona session list
+yona tui
 yona --json <command>
 ```
+
+## TUI usage
+
+Start the OpenTUI interface:
+
+```bash
+bun run tui
+```
+
+Or from Node after building:
+
+```bash
+node dist/cli/index.js tui
+```
+
+The TUI subscribes to daemon events and updates in real time (task state changes and new sessions).
 
 ## Notes
 
 - The runtime target is Node.js; no Bun-specific APIs are used.
 - The CLI starts the daemon automatically if it is not running.
 - Use `YONA_DAEMON_CMD` to override how the daemon is started in development.
+- Use `YONA_TUI_CMD` to override how the TUI process is launched.
