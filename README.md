@@ -1,4 +1,4 @@
-# yona
+# CLI Agent
 
 CLI and daemon prototype for a background task runner using JSON IPC.
 
