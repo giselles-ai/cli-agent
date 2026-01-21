@@ -143,7 +143,7 @@ const daemonEntry = process.argv[1] ?? "";
 if (
 	daemonEntry.endsWith("daemon/index.js") ||
 	daemonEntry.endsWith("daemon/index.ts") ||
-	process.env.YONA_DAEMON === "1"
+	process.env.CLI_AGENT_DAEMON === "1"
 ) {
 	startDaemon().catch((err) => {
 		console.error("Daemon start failed:", err);

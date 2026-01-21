@@ -52,14 +52,14 @@ function parseArgs(argv: string[]): { flags: CliFlags; args: string[] } {
 
 function usage(): string {
 	return `Usage:
-  yona
-  yona ping
-  yona run <name> [--duration <ms>] [--session <name>]
-  yona chat <text> [--model <id>] [--session <name>]
-  yona status [taskId] [--session <name>]
-  yona stop [taskId] [--session <name>]
-  yona session list
-  yona --json <command>`;
+  cli-agent
+  cli-agent ping
+  cli-agent run <name> [--duration <ms>] [--session <name>]
+  cli-agent chat <text> [--model <id>] [--session <name>]
+  cli-agent status [taskId] [--session <name>]
+  cli-agent stop [taskId] [--session <name>]
+  cli-agent session list
+  cli-agent --json <command>`;
 }
 
 function splitCommand(input: string): string[] {
@@ -88,33 +88,33 @@ function splitCommand(input: string): string[] {
 }
 
 async function ensureDaemon(): Promise<void> {
-	if (process.env.YONA_DEV_RESTART_DAEMON === "1") {
+	if (process.env.CLI_AGENT_DEV_RESTART_DAEMON === "1") {
 		await stopDaemon();
 	}
 	if (isDaemonRunning() && (await daemonReady())) return;
 
-	const daemonCmd = process.env.YONA_DAEMON_CMD;
+	const daemonCmd = process.env.CLI_AGENT_DAEMON_CMD;
 	if (daemonCmd) {
 		const parts = splitCommand(daemonCmd);
 		const command = parts.shift();
-		if (!command) throw new Error("YONA_DAEMON_CMD is empty");
+		if (!command) throw new Error("CLI_AGENT_DAEMON_CMD is empty");
 
 		const child = spawn(command, parts, {
 			detached: true,
 			stdio: "ignore",
-			env: { ...process.env, YONA_DAEMON: "1" },
+			env: { ...process.env, CLI_AGENT_DAEMON: "1" },
 		});
 		child.unref();
 	} else {
 		const currentFile = fileURLToPath(import.meta.url);
-		const daemonPath = process.env.YONA_DAEMON_PATH
-			? path.resolve(process.env.YONA_DAEMON_PATH)
+		const daemonPath = process.env.CLI_AGENT_DAEMON_PATH
+			? path.resolve(process.env.CLI_AGENT_DAEMON_PATH)
 			: path.resolve(path.dirname(currentFile), "../daemon/index.js");
 
 		const child = spawn("node", [daemonPath], {
 			detached: true,
 			stdio: "ignore",
-			env: { ...process.env, YONA_DAEMON: "1" },
+			env: { ...process.env, CLI_AGENT_DAEMON: "1" },
 		});
 		child.unref();
 	}
@@ -127,11 +127,11 @@ async function ensureDaemon(): Promise<void> {
 }
 
 function launchTui(): void {
-	const tuiCmd = process.env.YONA_TUI_CMD;
+	const tuiCmd = process.env.CLI_AGENT_TUI_CMD;
 	if (tuiCmd) {
 		const parts = splitCommand(tuiCmd);
 		const command = parts.shift();
-		if (!command) throw new Error("YONA_TUI_CMD is empty");
+		if (!command) throw new Error("CLI_AGENT_TUI_CMD is empty");
 		const child = spawn(command, parts, {
 			stdio: "inherit",
 			env: { ...process.env },
@@ -141,8 +141,8 @@ function launchTui(): void {
 	}
 
 	const currentFile = fileURLToPath(import.meta.url);
-	const tuiPath = process.env.YONA_TUI_PATH
-		? path.resolve(process.env.YONA_TUI_PATH)
+	const tuiPath = process.env.CLI_AGENT_TUI_PATH
+		? path.resolve(process.env.CLI_AGENT_TUI_PATH)
 		: path.resolve(path.dirname(currentFile), "../tui/index.js");
 	const child = spawn("node", [tuiPath], {
 		stdio: "inherit",

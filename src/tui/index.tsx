@@ -44,28 +44,28 @@ function splitCommand(input: string): string[] {
 async function ensureDaemon(): Promise<void> {
 	if (isDaemonRunning() && (await daemonReady())) return;
 
-	const daemonCmd = process.env.YONA_DAEMON_CMD;
+	const daemonCmd = process.env.CLI_AGENT_DAEMON_CMD;
 	if (daemonCmd) {
 		const parts = splitCommand(daemonCmd);
 		const command = parts.shift();
-		if (!command) throw new Error("YONA_DAEMON_CMD is empty");
+		if (!command) throw new Error("CLI_AGENT_DAEMON_CMD is empty");
 
 		const child = spawn(command, parts, {
 			detached: true,
 			stdio: "ignore",
-			env: { ...process.env, YONA_DAEMON: "1" },
+			env: { ...process.env, CLI_AGENT_DAEMON: "1" },
 		});
 		child.unref();
 	} else {
 		const currentFile = fileURLToPath(import.meta.url);
-		const daemonPath = process.env.YONA_DAEMON_PATH
-			? path.resolve(process.env.YONA_DAEMON_PATH)
+		const daemonPath = process.env.CLI_AGENT_DAEMON_PATH
+			? path.resolve(process.env.CLI_AGENT_DAEMON_PATH)
 			: path.resolve(path.dirname(currentFile), "../daemon/index.js");
 
 		const child = spawn("node", [daemonPath], {
 			detached: true,
 			stdio: "ignore",
-			env: { ...process.env, YONA_DAEMON: "1" },
+			env: { ...process.env, CLI_AGENT_DAEMON: "1" },
 		});
 		child.unref();
 	}
@@ -163,6 +163,30 @@ function updateChatLine(lines: Line[], event: ChatEvent): Line[] {
 
 	const idx = lines.findIndex((line) => line.id === id);
 	const nextText = event.text ?? event.delta ?? "";
+	if (event.role === "user") {
+		if (idx === -1) {
+			return [
+				...lines,
+				{
+					id,
+					kind: "text",
+					text: `> ${nextText}`,
+				},
+			];
+		}
+		const prev = lines[idx];
+		if (!prev) return lines;
+		const prevText = prev.kind === "text" ? prev.text : "";
+		const prevContent = prevText.startsWith("> ")
+			? prevText.slice(2)
+			: prevText;
+		const content = event.text ?? `${prevContent}${event.delta ?? ""}`;
+		return [
+			...lines.slice(0, idx),
+			{ id, kind: "text", text: `> ${content}` },
+			...lines.slice(idx + 1),
+		];
+	}
 	if (idx === -1) {
 		return [
 			...lines,
@@ -216,48 +240,55 @@ function TuiRoot({ onExit }: TuiRootProps) {
 			...prev,
 			...helpLines.map((text) => ({
 				id: crypto.randomUUID(),
-				kind: "text",
+				kind: "text" as const,
 				text,
 			})),
 		]);
 	}, []);
 
-	const handleSubmit = useCallback((line: string) => {
-		setLines((prev) => [
-			...prev,
-			{ id: crypto.randomUUID(), kind: "text", text: `> ${line}` },
-		]);
+	const handleSubmit = useCallback(
+		(line: string) => {
+			try {
+				if (line.startsWith("/")) {
+					setLines((prev) => [
+						...prev,
+						{
+							id: crypto.randomUUID(),
+							kind: "text" as const,
+							text: `> ${line}`,
+						},
+					]);
 
-		try {
-			if (line.startsWith("/")) {
-				const commandLine = line.slice(1).trim();
-				if (commandLine.length === 0 || commandLine === "help") {
-					appendHelp();
+					const commandLine = line.slice(1).trim();
+					if (commandLine.length === 0 || commandLine === "help") {
+						appendHelp();
+						return;
+					}
+					const parts = splitCommand(commandLine);
+					const cmd = buildCommand(parts, DEFAULT_SESSION);
+					commandSchema.parse(cmd);
+					void sendRequest(cmd);
 					return;
 				}
-				const parts = splitCommand(commandLine);
-				const cmd = buildCommand(parts, DEFAULT_SESSION);
+
+				const cmd: Command = {
+					id: crypto.randomUUID(),
+					action: "chat",
+					session: DEFAULT_SESSION,
+					text: line,
+				};
 				commandSchema.parse(cmd);
 				void sendRequest(cmd);
-				return;
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err);
+				setLines((prev) => [
+					...prev,
+					{ id: crypto.randomUUID(), kind: "text", text: `[error] ${message}` },
+				]);
 			}
-
-			const cmd: Command = {
-				id: crypto.randomUUID(),
-				action: "chat",
-				session: DEFAULT_SESSION,
-				text: line,
-			};
-			commandSchema.parse(cmd);
-			void sendRequest(cmd);
-		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
-			setLines((prev) => [
-				...prev,
-				{ id: crypto.randomUUID(), kind: "text", text: `[error] ${message}` },
-			]);
-		}
-	}, [appendHelp]);
+		},
+		[appendHelp],
+	);
 
 	useEffect(() => {
 		streamSocket = openStream({

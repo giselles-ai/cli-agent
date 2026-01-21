@@ -1,6 +1,6 @@
 # Task Runner
 
-This document describes the task queue and execution system in Yona.
+This document describes the task queue and execution system in cli-agent.
 
 ## Overview
 

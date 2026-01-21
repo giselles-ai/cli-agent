@@ -50,14 +50,14 @@ node dist/daemon/index.js
 ## CLI usage
 
 ```bash
-yona
-yona ping
-yona run <name> [--duration <ms>] [--session <name>]
-yona chat <text> [--model <id>] [--session <name>]
-yona status [taskId] [--session <name>]
-yona stop [taskId] [--session <name>]
-yona session list
-yona --json <command>
+cli-agent
+cli-agent ping
+cli-agent run <name> [--duration <ms>] [--session <name>]
+cli-agent chat <text> [--model <id>] [--session <name>]
+cli-agent status [taskId] [--session <name>]
+cli-agent stop [taskId] [--session <name>]
+cli-agent session list
+cli-agent --json <command>
 ```
 
 ## TUI usage
@@ -87,8 +87,8 @@ export OPENAI_API_KEY="..."
 CLI chat:
 
 ```bash
-yona chat "hello"
-yona chat "summarize this" --model gpt-4o-mini
+cli-agent chat "hello"
+cli-agent chat "summarize this" --model gpt-4o-mini
 ```
 
 TUI chat:
@@ -102,5 +102,5 @@ chat write a haiku --model gpt-4o-mini
 
 - The runtime target is Node.js; no Bun-specific APIs are used.
 - The CLI starts the daemon automatically if it is not running.
-- Use `YONA_DAEMON_CMD` to override how the daemon is started in development.
-- Use `YONA_TUI_CMD` to override how the TUI process is launched.
+- Use `CLI_AGENT_DAEMON_CMD` to override how the daemon is started in development.
+- Use `CLI_AGENT_TUI_CMD` to override how the TUI process is launched.

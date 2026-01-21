@@ -1,6 +1,6 @@
 # Architecture Overview
 
-This document describes the high-level architecture of Yona, a CLI-daemon system for managing background tasks with a terminal UI.
+This document describes the high-level architecture of cli-agent, a CLI-daemon system for managing background tasks with a terminal UI.
 
 ## Design Goals
 

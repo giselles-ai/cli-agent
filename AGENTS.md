@@ -4,7 +4,7 @@ Instructions for AI coding agents working with this codebase.
 
 ## Project Overview
 
-Yona is a CLI-daemon system for managing background tasks with a terminal UI. The architecture separates the user-facing CLI/TUI from a persistent background daemon, enabling parallel task execution and real-time updates.
+cli-agent is a CLI-daemon system for managing background tasks with a terminal UI. The architecture separates the user-facing CLI/TUI from a persistent background daemon, enabling parallel task execution and real-time updates.
 
 ## Documentation
 

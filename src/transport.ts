@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import type { EventMessage, Response } from "./protocol.js";
 
-const DAEMON_NAME = "yona-daemon";
+const DAEMON_NAME = "cli-agent-daemon";
 const IS_WINDOWS = process.platform === "win32";
 
 export function getSocketPath(): string {

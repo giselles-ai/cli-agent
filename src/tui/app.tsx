@@ -24,7 +24,8 @@ export function App({ lines, onSubmit, onExit }: Props) {
 	const [focusTarget, setFocusTarget] = useState("input" as FocusTarget);
 	const renderer = useRenderer();
 	const debugEnabled =
-		process.env.YONA_TUI_DEBUG === "1" || process.env.YONA_TUI_DEBUG === "true";
+		process.env.CLI_AGENT_TUI_DEBUG === "1" ||
+		process.env.CLI_AGENT_TUI_DEBUG === "true";
 
 	useEffect(() => {
 		if (!debugEnabled) return;

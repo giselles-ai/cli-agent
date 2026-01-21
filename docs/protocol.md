@@ -6,7 +6,7 @@ This document describes the JSON-based inter-process communication protocol betw
 
 ### Connection
 
-- **macOS/Linux**: Unix domain socket at `$TMPDIR/yona-daemon.sock`
+- **macOS/Linux**: Unix domain socket at `$TMPDIR/cli-agent-daemon.sock`
 - **Windows**: TCP on localhost, port derived from hash of daemon name (range 49152-65535)
 
 ### Message Format

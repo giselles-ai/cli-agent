@@ -1,13 +1,13 @@
 {
-	"name": "yona",
+	"name": "cli-agent",
 	"module": "index.ts",
 	"type": "module",
 	"private": true,
 	"bin": {
-		"yona": "dist/cli/index.js"
+		"cli-agent": "dist/cli/index.js"
 	},
 	"scripts": {
-		"dev": "YONA_DEV_RESTART_DAEMON=1 YONA_DAEMON_CMD=\"bun run src/daemon/index.ts\" YONA_TUI_CMD=\"bun run src/tui/index.tsx\" bun run src/cli/index.ts",
+		"dev": "CLI_AGENT_DEV_RESTART_DAEMON=1 CLI_AGENT_DAEMON_CMD=\"bun run src/daemon/index.ts\" CLI_AGENT_TUI_CMD=\"bun run src/tui/index.tsx\" bun run src/cli/index.ts",
 		"dev:daemon": "bun run src/daemon/index.ts",
 		"build": "tsc -p tsconfig.build.json",
 		"start": "node dist/cli/index.js",
